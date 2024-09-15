@@ -373,18 +373,13 @@ async def main():
         help="A file containing a list of proxies",
     )
     arg.add_argument("--action", "-A", help="Argument to select the menu directly")
-    arg.add_argument(
-        "--worker",
-        "-W",
-        type=int
-    )
+    arg.add_argument("--worker", "-W", type=int, default=temp_worker)
     args = arg.parse_args()
     proxy_file = args.proxy
     data_file = args.data
     opt = args.action
-    worker = args.worker
-    if not worker:
-        worker = asyncio.Semaphore(os.cpu_count() / 2)
+    # worker = args.worker
+    worker = asyncio.Semaphore(args.worker)
     banner = f"""
 {blue}┏┓┳┓┏┓  ┏┓    •     {green}Automation for {yellow}Maj*r
 {blue}┗┓┃┃┗┓  ┃┃┏┓┏┓┓┏┓┏╋ {white}Author : {green}-
@@ -413,6 +408,7 @@ async def main():
 {green}proxy file :{white} {proxy_file}
 {green}total data : {white}{len(datas)}
 {green}total proxy : {white}{len(proxies)}
+worker : {worker}
 
     {green}1{white}. set on/off auto task ({(green + "active" if cfg.auto_task else red + "non-active")}{reset})
     {green}2{white}. start bot
@@ -447,7 +443,8 @@ async def main():
                         continue
                     majtods.append(majtod)
                 tasks = [
-                    asyncio.create_task(mad.start(worker)) for i, mad in enumerate(majtods)
+                    asyncio.create_task(mad.start(worker))
+                    for i, mad in enumerate(majtods)
                 ]
 
                 results = await asyncio.gather(*tasks)
