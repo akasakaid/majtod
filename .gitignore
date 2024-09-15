@@ -12,3 +12,5 @@ telegram
 templates
 !data.txt
 !proxies.txt
+!models.py
+!generate_report.py
