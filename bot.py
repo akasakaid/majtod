@@ -381,7 +381,7 @@ async def main():
     args = arg.parse_args()
     proxy_file = args.proxy
     data_file = args.data
-    action = args.action
+    opt = args.action
     sem = asyncio.Semaphore(os.cpu_count() / 2)
     banner = f"""
 {blue}┏┓┳┓┏┓  ┏┓    •     {green}Automation for {yellow}Maj*r
@@ -417,20 +417,20 @@ async def main():
         """
         print(banner)
         print(menu)
-        if not action:
+        if not opt:
             opt = input(f"{green}input number : {white}") or None
             print(line)
             if not opt:
                 print(f"{yellow}please input correct number !")
                 input(f"{blue}press enter to continue !")
                 continue
-        opt = action
         if opt == "1":
             async with aiofiles.open(config_file, "w") as w:
                 config["auto_task"] = False if cfg.auto_task else True
                 await w.write(json.dumps(config, indent=4))
             print(f"{green}success update auto_task config !")
             input(f"{blue}press enter to continue !")
+            opt = None
             continue
         elif opt == "2":
             if len(datas) <= 0:
