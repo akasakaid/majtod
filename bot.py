@@ -376,6 +376,7 @@ async def main():
     arg.add_argument(
         "--worker",
         "-W",
+        type=int
     )
     args = arg.parse_args()
     proxy_file = args.proxy
