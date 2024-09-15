@@ -373,13 +373,12 @@ async def main():
         help="A file containing a list of proxies",
     )
     arg.add_argument("--action", "-A", help="Argument to select the menu directly")
-    arg.add_argument("--worker", "-W", type=int, default=temp_worker)
+    arg.add_argument("--worker", "-W", type=int, help="Worker")
     args = arg.parse_args()
     proxy_file = args.proxy
     data_file = args.data
     opt = args.action
-    # worker = args.worker
-    worker = asyncio.Semaphore(args.worker)
+    worker = args.worker
     banner = f"""
 {blue}┏┓┳┓┏┓  ┏┓    •     {green}Automation for {yellow}Maj*r
 {blue}┗┓┃┃┗┓  ┃┃┏┓┏┓┓┏┓┏╋ {white}Author : {green}-
@@ -398,6 +397,9 @@ async def main():
     while True:
         if not args.marin:
             os.system("cls" if os.name == "nt" else "clear")
+        if not worker:
+            worker = os.cpu_count() / 2
+        sem = asyncio.Semaphore(worker)
         async with aiofiles.open(config_file, "r") as r:
             read = await r.read()
             config = json.loads(read)
@@ -408,7 +410,6 @@ async def main():
 {green}proxy file :{white} {proxy_file}
 {green}total data : {white}{len(datas)}
 {green}total proxy : {white}{len(proxies)}
-worker : {worker}
 
     {green}1{white}. set on/off auto task ({(green + "active" if cfg.auto_task else red + "non-active")}{reset})
     {green}2{white}. start bot
@@ -443,8 +444,7 @@ worker : {worker}
                         continue
                     majtods.append(majtod)
                 tasks = [
-                    asyncio.create_task(mad.start(worker))
-                    for i, mad in enumerate(majtods)
+                    asyncio.create_task(mad.start(sem)) for i, mad in enumerate(majtods)
                 ]
 
                 results = await asyncio.gather(*tasks)
