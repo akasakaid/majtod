@@ -1,0 +1,12 @@
+__pycache__
+orang2
+sessions
+*.session
+telegram
+*.txt
+*.py
+!bot.py
+*.json
+*.log
+*.html
+templates
