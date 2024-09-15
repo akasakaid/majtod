@@ -14,3 +14,4 @@ templates
 !proxies.txt
 !models.py
 !generate_report.py
+!requirements.txt
