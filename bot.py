@@ -37,6 +37,7 @@ class MajTod:
         marin = lambda data: {key: value[0] for key, value in parse_qs(data).items()}
         parser = marin(query)
         user = parser.get("user")
+        self.p = id
         self.cfg = cfg
         self.valid = True
         if user is None:
@@ -63,7 +64,6 @@ class MajTod:
             self.ses = httpx.AsyncClient(proxy=proxy)
         else:
             self.ses = httpx.AsyncClient()
-        self.p = id
 
     def log(self, msg):
         now = datetime.now().isoformat().split("T")[1].split(".")[0]
@@ -376,13 +376,14 @@ async def main():
     arg.add_argument(
         "--worker",
         "-W",
-        default=temp_worker,
     )
     args = arg.parse_args()
     proxy_file = args.proxy
     data_file = args.data
     opt = args.action
-    sem = asyncio.Semaphore(os.cpu_count() / 2)
+    worker = args.worker
+    if not worker:
+        worker = asyncio.Semaphore(os.cpu_count() / 2)
     banner = f"""
 {blue}┏┓┳┓┏┓  ┏┓    •     {green}Automation for {yellow}Maj*r
 {blue}┗┓┃┃┗┓  ┃┃┏┓┏┓┓┏┓┏╋ {white}Author : {green}-
@@ -445,7 +446,7 @@ async def main():
                         continue
                     majtods.append(majtod)
                 tasks = [
-                    asyncio.create_task(mad.start(sem)) for i, mad in enumerate(majtods)
+                    asyncio.create_task(mad.start(worker)) for i, mad in enumerate(majtods)
                 ]
 
                 results = await asyncio.gather(*tasks)
