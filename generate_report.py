@@ -99,7 +99,7 @@ async def main():
     <td>{i['first_name']}</td>
     <td>{i['balance']}</td>
 </tr>"""
-    async with aiofiles.open("report.html", "w") as w:
+    async with aiofiles.open("report.html", "w", encoding="utf-8") as w:
         await w.write(start_html + end_html(tot))
 
 
