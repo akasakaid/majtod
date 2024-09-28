@@ -2,26 +2,38 @@ import os
 import re
 import json
 import httpx
+import anyio
 import random
 import asyncio
 import argparse
 import aiofiles
 import aiofiles.os
+import python_socks
 from glob import glob
 import aiofiles.ospath
 from pathlib import Path
 from urllib.parse import parse_qs
 from base64 import urlsafe_b64decode
 from datetime import datetime, timezone
-from colorama import init, Fore, Style
-from models import insert, update, get_by_id, Config
+from colorama import init as inits, Fore, Style
+from models import (
+    insert,
+    get_by_id,
+    Config,
+    init,
+    update_balance,
+    update_token,
+    update_useragent,
+)
+from httpx_socks import AsyncProxyTransport
+from fake_useragent import UserAgent
 
 log_file = "http.log"
 proxy_file = "proxies.txt"
 data_file = "data.txt"
 token_file = "tokens.json"
 config_file = "config.json"
-init(autoreset=True)
+inits(autoreset=True)
 red = Fore.LIGHTRED_EX
 blue = Fore.LIGHTBLUE_EX
 green = Fore.LIGHTGREEN_EX
@@ -42,11 +54,19 @@ class MajTod:
         self.valid = True
         if user is None:
             self.valid = False
-            self.log(f"{red}The data entered has the wrong format.")
+            self.log(f"{red}The data entered has wrong format !")
             return None
-        uid = re.search(r'"id":(.*?),', user).group(1)
-        first_name = re.search(r'first_name":"(.*?)"', user).group(1)
-        self.user = {"id": uid, "first_name": first_name}
+        self.user = {}
+        uid = re.search(r"\"id\"\:(.*?)\,", user)
+        first_name = re.search(r"\"first_name\"\:\"(.*?)\"\,", user)
+        if uid:
+            self.user["id"] = uid.group(1)
+            if first_name:
+                self.user["first_name"] = first_name.group(1)
+        else:
+            self.valid = False
+            self.log(f"{red}The data entered has wrong format !")
+            return None
         self.headers = {
             "accept": "application/json, text/plain, */*",
             "user-agent": "Mozilla/5.0 (Linux; Android 11; K) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/106.0.5249.79 Mobile Safari/537.36",
@@ -61,9 +81,10 @@ class MajTod:
         self.proxies = proxies
         if len(self.proxies) > 0:
             proxy = self.get_random_proxy(id, False)
-            self.ses = httpx.AsyncClient(proxy=proxy)
+            transport = AsyncProxyTransport.from_url(proxy)
+            self.ses = httpx.AsyncClient(transport=transport, timeout=1000)
         else:
-            self.ses = httpx.AsyncClient()
+            self.ses = httpx.AsyncClient(timeout=1000)
 
     def log(self, msg):
         now = datetime.now().isoformat().split("T")[1].split(".")[0]
@@ -72,18 +93,23 @@ class MajTod:
         )
 
     async def ipinfo(self):
-        url = "https://ipinfo.io/json"
+        ipinfo1_url = "https://ipapi.co/json/"
+        ipinfo2_url = "https://ipwho.is/"
+        ipinfo3_url = "https://freeipapi.com/api/json"
         try:
-            res = await self.http(
-                url,
-                {
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 Edg/128.0.0.0"
-                },
-            )
+            res = await self.ses.get(ipinfo1_url)
             ip = res.json().get("ip")
             country = res.json().get("country")
+            if not ip:
+                res = await self.ses.get(ipinfo2_url)
+                ip = res.json().get("ip")
+                country = res.json().get("country_code")
+                if not ip:
+                    res = await self.ses.get(ipinfo3_url)
+                    ip = res.json().get("ipAddress")
+                    country = res.json().get("countryCode")
             self.log(f"{green}ip : {white}{ip} {green}country : {white}{country}")
-        except:
+        except json.decoder.JSONDecodeError:
             self.log(f"{green}ip : {white}None {green}country : {white}None")
 
     def get_random_proxy(self, isself, israndom=False):
@@ -94,7 +120,7 @@ class MajTod:
     async def http(self, url, headers, data=None):
         while True:
             try:
-                await asyncio.sleep(1)
+                await asyncio.sleep(0.5)
                 if not await aiofiles.ospath.exists(log_file):
                     async with aiofiles.open(log_file, "w") as w:
                         await w.write("")
@@ -103,13 +129,11 @@ class MajTod:
                     async with aiofiles.open(log_file, "w") as w:
                         await w.write("")
                 if data is None:
-                    res = await self.ses.get(url, headers=headers, timeout=30)
+                    res = await self.ses.get(url, headers=headers)
                 elif data == "":
-                    res = await self.ses.post(url, headers=headers, timeout=30)
+                    res = await self.ses.post(url, headers=headers)
                 else:
-                    res = await self.ses.post(
-                        url, headers=headers, timeout=30, data=data
-                    )
+                    res = await self.ses.post(url, headers=headers, data=data)
                 async with aiofiles.open(log_file, "a", encoding="utf-8") as hw:
                     await hw.write(f"{res.text}\n")
                 if "<title>" in res.text:
@@ -125,9 +149,15 @@ class MajTod:
                     continue
 
                 return res
-            except httpx.ProxyError:
+            except (
+                httpx.ProxyError,
+                python_socks._errors.ProxyTimeoutError,
+                python_socks._errors.ProxyError,
+                python_socks._errors.ProxyConnectionError,
+            ):
                 proxy = self.get_random_proxy(0, israndom=True)
-                self.ses = httpx.AsyncClient(proxy=proxy)
+                transport = AsyncProxyTransport.from_url(proxy)
+                self.ses = httpx.AsyncClient(transport=transport)
                 self.log(f"{yellow}proxy error,selecting random proxy !")
                 await asyncio.sleep(3)
                 continue
@@ -139,7 +169,7 @@ class MajTod:
                 self.log(f"{yellow}connection timeout !")
                 await asyncio.sleep(3)
                 continue
-            except httpx.RemoteProtocolError:
+            except (httpx.RemoteProtocolError, anyio.EndOfStream):
                 self.log(f"{yellow}connection close without response !")
                 await asyncio.sleep(3)
                 continue
@@ -164,45 +194,49 @@ class MajTod:
         token = res.json().get("access_token")
         if token is None:
             return False
-        return token
+        # return token
+        self.headers["authorization"] = f"Bearer {token}"
+        await update_token(id=self.user.get("id"), token=token)
 
-    async def start(self, sem):
-        async with sem:
-            if len(self.proxies) > 0:
-                await self.ipinfo()
-            if not await aiofiles.ospath.exists(token_file):
-                async with aiofiles.open(token_file, "w") as w:
-                    await w.write(json.dumps({}))
-            async with aiofiles.open(token_file) as w:
-                read = await w.read()
-                tokens = json.loads(read)
-            uid = self.user.get("id")
-            first_name = self.user.get("first_name")
+    async def start(self):
+        if not self.valid:
+            return int(datetime.now().timestamp()) + 8 * 3600
+        if len(self.proxies) > 0:
+            await self.ipinfo()
+        if not await aiofiles.ospath.exists(token_file):
+            async with aiofiles.open(token_file, "w") as w:
+                await w.write(json.dumps({}))
+
+        uid = self.user.get("id")
+        first_name = self.user.get("first_name")
+        res = await get_by_id(uid)
+        if res is None:
+            await insert(uid, first_name)
             res = await get_by_id(uid)
-            if res is None:
-                await insert(uid, first_name, 0)
-            self.log(f"{green}login as {white}{first_name}")
-            token = tokens.get(uid)
-            if self.is_expired(token):
-                token = await self.login()
-                if token is False:
-                    return 0
-                async with aiofiles.open(token_file, "w") as w:
-                    tokens[uid] = token
-                    await w.write(json.dumps(tokens, indent=4))
-            self.headers["authorization"] = f"Bearer {token}"
-            streak_url = "https://major.bot/api/user-visits/streak/"
-            visit_url = "https://major.bot/api/user-visits/visit/"
-            res = await self.http(streak_url, self.headers)
-            streak = res.json().get("streak")
-            self.log(f"{green}streak : {white}{streak}")
-            await self.http(visit_url, self.headers, "")
-            await self.getme()
-            if self.cfg.auto_task:
-                await self.solve_task()
-            min_countdown = await self.playgame()
-            result = await self.getme()
-            return min_countdown
+        self.log(f"{green}login as {white}{first_name}")
+        token = res.get("token")
+        useragent = res.get("useragent")
+        if not useragent:
+            useragent = UserAgent().random
+            await update_useragent(uid, useragent)
+        self.headers["user-agent"] = useragent
+        self.headers["authorization"] = f"Bearer {token}"
+        if self.is_expired(token):
+            token = await self.login()
+            if token is False:
+                return int(datetime.now().timestamp()) + 8 * 3600
+        streak_url = "https://major.bot/api/user-visits/streak/"
+        visit_url = "https://major.bot/api/user-visits/visit/"
+        res = await self.http(streak_url, self.headers)
+        streak = res.json().get("streak")
+        self.log(f"{green}streak : {white}{streak}")
+        await self.http(visit_url, self.headers, "")
+        await self.getme()
+        if self.cfg.auto_task:
+            await self.solve_task()
+        min_countdown = await self.playgame()
+        result = await self.getme()
+        return min_countdown
 
     async def solve_task(self):
         urls = [
@@ -235,7 +269,7 @@ class MajTod:
         url = "https://major.bot/api/users/" + str(uid) + "/"
         res = await self.http(url, self.headers)
         balance = res.json().get("rating")
-        await update(uid, balance)
+        await update_balance(uid, balance)
         self.log(f"{green}balance : {white}{balance}")
 
     async def playgame(self):
@@ -268,7 +302,7 @@ class MajTod:
                     )
                 else:
                     res = await self.http(puzzle_url, self.headers, json.dumps(answer))
-                    correct = res.json().get("correct")
+                    correct = res.json().get("correct", "")
                     if len(correct) == 4:
                         self.log(f"{green}get reward from puzzle game : {white}5000")
                     else:
@@ -332,7 +366,7 @@ class MajTod:
                     self.log(f"{green}get reward from swap game : {white}{coin}")
                 else:
                     self.log(f"{red}failed get reward from swap game !")
-            if len(timestamps) >= 1:
+            if len(timestamps) >= 3:
                 break
         return min(timestamps)
 
@@ -356,6 +390,11 @@ async def get_data():
         read = await w.read()
         proxies = [i for i in read.splitlines() if len(i) > 5]
     return datas, proxies
+
+
+async def bound(sem, data):
+    async with sem:
+        return await MajTod(*data).start()
 
 
 async def main():
@@ -398,7 +437,9 @@ async def main():
         if not args.marin:
             os.system("cls" if os.name == "nt" else "clear")
         if not worker:
-            worker = os.cpu_count() / 2
+            worker = int(os.cpu_count() / 2)
+            if worker < 1:
+                worker = 1
         sem = asyncio.Semaphore(worker)
         async with aiofiles.open(config_file, "r") as r:
             read = await r.read()
@@ -412,7 +453,8 @@ async def main():
 {green}total proxy : {white}{len(proxies)}
 
     {green}1{white}. set on/off auto task ({(green + "active" if cfg.auto_task else red + "non-active")}{reset})
-    {green}2{white}. start bot
+    {green}2{white}. start bot {green}(multi proses)
+    {green}3{white}. start bot {green}(single proses)
         """
         print(banner)
         print(menu)
@@ -432,24 +474,32 @@ async def main():
             opt = None
             continue
         elif opt == "2":
+            await init()
             if len(datas) <= 0:
                 print(f"{red}fill your data in {data_file} first !")
                 exit()
             while True:
                 datas, proxies = await get_data()
-                majtods = []
-                for no, data in enumerate(datas):
-                    majtod = MajTod(id=no, query=data, proxies=proxies, cfg=cfg)
-                    if not majtod.valid:
-                        continue
-                    majtods.append(majtod)
                 tasks = [
-                    asyncio.create_task(mad.start(sem)) for i, mad in enumerate(majtods)
+                    asyncio.create_task(bound(sem, (no, data, proxies, cfg)))
+                    for no, data in enumerate(datas)
                 ]
-
                 results = await asyncio.gather(*tasks)
                 _now = int(datetime.now().timestamp())
                 await countdown(min(results) - _now)
+        elif opt == "3":
+            await init()
+            if len(datas) <= 0:
+                print(f"{red}fill your data in {data_file} first !")
+                exit()
+            while True:
+                datas, proxies = await get_data()
+                countdowns = []
+                for no, data in enumerate(datas):
+                    result = await MajTod(no, data, proxies, cfg).start()
+                    countdowns.append(result)
+                now = int(datetime.now().timestamp())
+                await countdown(min(countdowns) - now)
 
 
 if __name__ == "__main__":
