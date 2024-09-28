@@ -99,8 +99,11 @@ async def main():
     <td>{i['first_name']}</td>
     <td>{i['balance']}</td>
 </tr>"""
+    print(f"total account : {len(datas)}")
+    print(f"total balance : {tot}")
     async with aiofiles.open("report.html", "w", encoding="utf-8") as w:
         await w.write(start_html + end_html(tot))
+    print(f"report results in the form of an html file: report.html")
 
 
 asyncio.run(main())
