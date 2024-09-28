@@ -8,6 +8,7 @@ The English version of the Readme is available at [README_EN.md](README_EN.md)
 
 - [MajTod](#majtod)
 - [Daftar Isi](#daftar-isi)
+- [Pendaftaran](#pendaftaran)
 - [Fitur](#fitur)
 - [Dukung saya](#dukung-saya)
 - [Cara Penggunaan](#cara-penggunaan)
@@ -20,6 +21,9 @@ The English version of the Readme is available at [README_EN.md](README_EN.md)
 - [Kode Javascript untuk Mendapatkan Data di Aplikasi Telegram Desktop](#kode-javascript-untuk-mendapatkan-data-di-aplikasi-telegram-desktop)
 - [Terima kasih](#terima-kasih)
 
+# Pendaftaran
+
+Ikuti tautan berikut untuk mendaftar : https://t.me/major/start?startapp=629438076
 
 # Fitur
 
@@ -227,7 +231,7 @@ Invoke-WebRequest https://raw.githubusercontent.com/akasakaid/majtod/refs/heads/
 Linux/Termux/Unix/Windows CMD/MacOS: 
 
 ```shell
-curl https://raw.githubusercontent.com/akasakaid/blumtod/refs/heads/main/bot.py -o bot.py && curl https://raw.githubusercontent.com/akasakaid/blumtod/refs/heads/main/models.py -o models.py && curl https://raw.githubusercontent.com/akasakaid/majtod/refs/heads/main/requirements.txt -o requirements.txt
+curl https://raw.githubusercontent.com/akasakaid/majtod/refs/heads/main/bot.py -o bot.py && curl https://raw.githubusercontent.com/akasakaid/majtod/refs/heads/main/models.py -o models.py && curl https://raw.githubusercontent.com/akasakaid/majtod/refs/heads/main/requirements.txt -o requirements.txt
 ```
 
 # Kode Javascript untuk Mendapatkan Data di Aplikasi Telegram Desktop
