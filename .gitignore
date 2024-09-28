@@ -15,3 +15,4 @@ templates
 !models.py
 !generate_report.py
 !requirements.txt
+*.sqlite3
