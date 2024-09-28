@@ -7,6 +7,7 @@ Automation script bot for Maj*r
 
 - [MajTod](#majtod)
 - [Table of Contents](#table-of-contents)
+- [Registration](#registration)
 - [Features](#features)
 - [Support Me](#support-me)
 - [How to Use](#how-to-use)
@@ -18,6 +19,9 @@ Automation script bot for Maj*r
 - [How to Update](#how-to-update)
 - [JavaScript Code to Get Data in Telegram Desktop Application](#javascript-code-to-get-data-in-telegram-desktop-application)
 - [Thank You](#thank-you)
+ 
+# Registration
+Follow this link to register: https://t.me/major/start?startapp=629438076
 
 # Features
 
@@ -212,15 +216,15 @@ rm database.sqlite3
 You can update simply by using the `git pull` command if you initially cloned the repository with git.
 If you didn't clone the repository with git, you can force an update with the command below (adjust according to your operating system).
 
-Windows PowerShell:
+Windows powershell : 
 ```shell
 Invoke-WebRequest https://raw.githubusercontent.com/akasakaid/majtod/refs/heads/main/bot.py -OutFile bot.py; Invoke-WebRequest https://raw.githubusercontent.com/akasakaid/majtod/refs/heads/main/models.py -OutFile models.py; Invoke-WebRequest https://raw.githubusercontent.com/akasakaid/majtod/refs/heads/main/requirements.txt -OutFile requirements.txt
 ```
 
-Linux/Termux/Unix/Windows CMD/MacOS:
+Linux/Termux/Unix/Windows CMD/MacOS: 
 
 ```shell
-curl https://raw.githubusercontent.com/akasakaid/blumtod/refs/heads/main/bot.py -o bot.py && curl https://raw.githubusercontent.com/akasakaid/blumtod/refs/heads/main/models.py -o models.py && curl https://raw.githubusercontent.com/akasakaid/majtod/refs/heads/main/requirements.txt -o requirements.txt
+curl https://raw.githubusercontent.com/akasakaid/majtod/refs/heads/main/bot.py -o bot.py && curl https://raw.githubusercontent.com/akasakaid/majtod/refs/heads/main/models.py -o models.py && curl https://raw.githubusercontent.com/akasakaid/majtod/refs/heads/main/requirements.txt -o requirements.txt
 ```
 
 # JavaScript Code to Get Data in Telegram Desktop Application
