@@ -3,3 +3,5 @@ httpx[http2]
 aiofiles
 colorama
 aiosqlite
+fake-useragent
+httpx-socks
