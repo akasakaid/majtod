@@ -97,15 +97,15 @@ class MajTod:
         ipinfo2_url = "https://ipwho.is/"
         ipinfo3_url = "https://freeipapi.com/api/json"
         try:
-            res = await self.http(ipinfo1_url)
+            res = await self.http(ipinfo1_url, {"User-Agent": "Marin-Kitagawa"})
             ip = res.json().get("ip")
             country = res.json().get("country")
             if not ip:
-                res = await self.http(ipinfo2_url)
+                res = await self.http(ipinfo2_url, {"User-Agent": "Marin-Kitagawa"})
                 ip = res.json().get("ip")
                 country = res.json().get("country_code")
                 if not ip:
-                    res = await self.http(ipinfo3_url)
+                    res = await self.http(ipinfo3_url, {"User-Agent": "Marin-Kitagawa"})
                     ip = res.json().get("ipAddress")
                     country = res.json().get("countryCode")
             self.log(f"{green}ip : {white}{ip} {green}country : {white}{country}")
